@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Karakter Kartı Üretici v7</title>
+    <style>
+        /* DISCORD STİLLERİ */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #36393f; color: #ffffff; padding: 20px; }
+        .container { max-width: 850px; margin: 0 auto; }
+        
+        /* KONTROL MENÜSÜ GÜZELLEŞTİRMESİ */
+        .controls { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 150px; /* 3 sütun düzeni */
+            gap: 15px; 
+            margin-bottom: 30px; 
+            padding: 15px;
+            background-color: #2f3136;
+            border-radius: 8px;
+            border: 1px solid #4f545c;
+        }
+        .controls input, .controls select { 
+            padding: 10px; 
+            border-radius: 5px; 
+            border: 1px solid #5865f2; 
+            background-color: #202225; 
+            color: #ffffff;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button { 
+            padding: 10px; 
+            background-color: #5865f2; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            transition: background-color 0.3s; 
+            width: 100%;
+        }
+        button:hover { background-color: #4752c4; }
+
+        /* KART STİLLERİ */
+        .card { background-color: #2f3136; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-left: 5px solid; position: relative; }
+        .card-tier-10 { border-color: #ff9900; } 
+        .card-tier-8 { border-color: #cc00ff; } 
+        .card-tier-5 { border-color: #00bfff; } 
+        .card-tier-3 { border-color: #33cc33; } 
+        .card-tier-1 { border-color: #999999; } 
+
+        .header { display: flex; align-items: center; margin-bottom: 10px; }
+        .name { font-size: 24px; font-weight: bold; color: #7289da; margin-left: 10px; }
+        .tier { font-size: 16px; font-weight: bold; color: #f0b873; margin-left: auto; }
+        
+        .stats { background-color: #202225; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .stat-line { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .stat-label { font-weight: bold; color: #b9bbbe; }
+
+        .powers-title { font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #7289da; border-bottom: 1px solid #7289da; padding-bottom: 3px; }
+        .power-list { list-style-type: none; padding-left: 0; }
+        .power-list li { margin-bottom: 8px; line-height: 1.4; }
+        .power-list li strong { color: #f0b873; margin-right: 5px; }
+
+        /* KOPYALAMA BUTONU */
+        .copy-button { position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 12px; background-color: #3ba55d; }
+        .copy-button:hover { background-color: #2e8b57; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Discord Karakter Üretici</h1>
+        
+        <div class="controls">
+            <input type="text" id="customName" placeholder="Özel Ad (Boş bırakılabilir)">
+            <select id="customTheme">
+                <option value="random">Rastgele Konu</option>
+                <option value="kanManipulasyonu">Kan Manipülasyonu</option>
+                <option value="mafyaYeralti">Mafya / Yeraltı</option>
+                <option value="elemental">Element / Doğa</option>
+                <option value="zamanUzay">Zaman / Uzay</option>
+                <option value="biyolojikZihinsel">Biyolojik / Zihinsel</option>
+                <option value="fiziksel">Fiziksel / Silah</option>
+            </select>
+            <button onclick="generateCharacter()">Karakter Üret</button>
+        </div>
+
+        <div id="characterOutput">
+            </div>
+    </div>
+
+    <script>
+        // Rastgele seçim fonksiyonu
+        const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+        
+        // 5'in katı olarak rastgele sayı üreten fonksiyon
+        const getRandomMultipleOfFive = (min, max) => {
+            let num = Math.floor(Math.random() * (max - min + 1)) + min;
+            return Math.ceil(num / 5) * 5;
+        };
+        const getRandomTier = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        // --- VERİ LİSTELERİ ---
+
+        const latinceIsimler = [
+            "Aeternus", "Bellator", "Ignis", "Umbra", "Caelus", "Veritas", "Tempus", "Sanguis", "Cruor", 
+            "Haemos", "Rubrum", "Vena", "Consul", "Pater", "Rex", "Lex", "Dominus"
+        ];
+        const ingilizceIsimler = [
+            "Vortex", "Chronos", "Sentinel", "Revenant", "Phantom", "Aether", "Titan", "Zero", "Crimson", 
+            "Gore", "Hemlock", "Redthorn", "Nomad", "Viper", "Glitch", "Ironclad", "Kingpin", "Don", "Shadow"
+        ];
+        
+        const gucTemalari = {
+            mafyaYeralti: [
+                "Keskin İkna Yeteneği: Sıradan insanları ve düşük seviyeli düşmanları konuşarak ikna eder veya manipüle eder (Kritik: Zihin Kalkanı olmayanları anlık dize getirir).",
+                "Kapsamlı Kaynak Yönetimi: Her türlü silah, mühimmat, bilgi ve personel ağını anında harekete geçirir. (Örnek: 1 dakika içinde bölgeye 10 adam sevk eder).",
+                "Özel Bölge Hilesi: Savaş alanını önceden kendi lehine olacak şekilde tuzağa, korumaya veya saklanma noktalarına hazırlar.",
+                "Zayıf Nokta Tespiti: Rakibin en büyük sırrını veya zayıflığını anlık hisseder ve bunu ona karşı kullanır.",
+                "Sessiz Suikast: Yüksek hızda ve tamamen ses çıkarmadan hedefine yaklaşıp kritik hasar verir (Koruma: Bedrock Vücut hariç %80 Can Hasarı).",
+                "Gizli Servet: En zor durumlarda bile beklenmedik yerden güçlü bir silah veya iyileştirici bir iksir çıkarır (Item: Tier 5 Eşya olabilir).",
+                "Çevik Kaçış: En sıkışık anlarda bile duman bombası, flaş bombası veya gizli geçit kullanarak alandan anında kaybolur.",
+                "Kara Para Aklama: Rakibin saldırısını geçersiz kılacak (parasal bedeli ödenmiş) bir yasal boşluk veya anlaşma sunar."
+            ],
+            kanManipulasyonu: [
+                "Kan Mühürleri (Item Crafting): Kendi kanını kullanarak geçici olarak güçlü, saf kan kristal kılıçlar, zırhlar veya kalkanlar oluşturur (Oluşturulan eşyalar Tier 3 gücündedir).",
+                "Hızlı Kan Yenilenmesi: Normal yenilenmenin 2 katı hızında iyileşir. Büyük yaraları bile kanının akışını hızlandırarak kapatabilir.",
+                "Kan Patlaması (Hemoblast): Rakibin vücudundaki kan basıncını anlık yükselterek iç hasar verir veya küçük patlamalar yaratır (Zırhı bypass eder).",
+                "Vampirik Dokunuş: Dokunduğu canlıdan zorla kan çekerek hem onu zayıflatır hem de çektiği kanı anında kendi canına ekler.",
+                "Kan Büyüsü (Hemomancy): Rakibin kanını kontrol ederek onu kısa süreliğine felç edebilir veya vücut içinde manipülasyon yapabilir (Kanı olan rakiplere etkilidir).",
+                "Kan Zırhı: Kendi kanından katılaşmış, çok yüksek fiziksel hasar direncine sahip bir zırh oluşturur (Maliyet: %10 Can).",
+            ],
+            elemental: [
+                "Plazma Manipülasyonu: Saf enerji patlamaları üretir ve enerji alanlarını saptırır (Enerjiye karşı koruma sağlar).",
+                "Mutlak Sıfır Üretme: Dokunduğu yeri anında dondurur; rakibin hızını ve reflekslerini yavaşlatır.",
+                "Kozmik Ateş Fırlatma: Yüksek yoğunluklu ve yokedici alevler oluşturur, yanma etkisi güçlüdür.",
+                "Deprem Yaratma: Bölgesel sarsıntılar başlatır; rakibin dengesini bozar ve çevreye hasar verir.",
+                "Asit Yağmuru Çağırma: Alan etkili aşındırıcı sıvı yağdırır; zırhları ve dayanıklılığı azaltır.",
+                "Elektrik Fırtınası: Geniş alanda kontrol edilemez elektrik yükü oluşturur; elektronik cihazları bozar.",
+            ],
+            zamanUzay: [
+                "Zaman Algısı Manipülasyonu: Yakın çevrenin algısını yavaşlatır; kendisine refleks ve hız avantajı sağlar.",
+                "Kısa Süreli Geri Sarma: Kendisini ve yakınındaki bir nesneyi 5 saniye geriye ışınlar (hata düzeltme ve hasar engelleme).",
+                "Boyutlar Arası Atlama: Kısa mesafede boyut değiştirerek fiziksel ve enerji hasarından kaçar (Anlık savunma).",
+                "Yerçekimi Tersine Çevirme: Bölgesel yerçekimini kontrol eder; rakibi havaya kaldırır veya yere sabitler.",
+                "Uzay-Zaman Bükülmesi: Atılan cisimleri ve enerji atışlarını yörüngesinden çıkararak etkisizleştirir.",
+                "Olasılık Manipülasyonu: Olayların kritik veya başarısız olma olasılığını kısa süreliğine değiştirir (Şans faktörünü kontrol eder).",
+            ],
+            biyolojikZihinsel: [
+                "Nanobot - Hızlı Yenilenme: Küçük yaraları anında iyileştirir; uzuv kopması durumunda yavaş onarım yapar.",
+                "Kimyasal Manipülasyon: Bayıltıcı gazlar, zehirler ve patlayıcı reaksiyonlar üretebilir (Biyolojik rakiplere çok etkilidir).",
+                "Zihin Kalkanı: Zihinsel okuma, algı manipülasyonu ve zihin kontrolünü tamamen engeller.",
+                "Korku Manipülasyonu: Rakibin en derin korkusunu fizikselleştirir; gerçek sanrı görmesine neden olur.",
+                "Genetik Mutasyon: Kendi vücudunu geçici olarak güçlendirir; kuvvet ve dayanıklılığı katlar.",
+                "Biyolojik Kontrol: Hedefin hücrelerini yavaşlatır; hedefi kısa süreliğine felç eder (Hücre manipülasyonu).",
+            ],
+            fiziksel: [
+                "Güç Çalma: Vurulan kişinin gücünün %10'unu anlık çalar ve kendisine ekler (Geçici buff).",
+                "Bedrock Vücut: Fiziksel güçlere karşı mutlak dayanıklılık; uzvu kopmaz, bayılamaz.",
+                "Işık Hızına Yakın Hareket: Hızından dolayı algılanamaz ve izlenemez; şimşek hızında saldırır.",
+                "Şok Dalgası: Yumruklarıyla duvarları parçalayan, geniş alanda şok dalgaları yayar.",
+                "İtem Çalma: Vurduğunda rakibin elindeki eşyayı (Özel dahil) anında çalar.",
+                "Fizik Manipülasyonu: Fiziğin tüm yasalarını (yerçekimi, sürtünme) bölgesel kontrol edebilir.",
+            ]
+        };
+
+        // --- ANA FONKSİYON ---
+
+        function generateCharacter() {
+            const outputDiv = document.getElementById('characterOutput');
+            const customName = document.getElementById('customName').value.trim();
+            const customTheme = document.getElementById('customTheme').value;
+
+            const tier = getRandomTier(1, 10);
+            
+            const isim = customName || getRandomItem(getRandomTier(0, 1) ? latinceIsimler : ingilizceIsimler);
+            
+            // Stat Hesaplama (Hepsi 5'in Katı)
+            const canMax = tier * 200;
+            const kuvvetMax = tier * 100;
+            const yenilenmeMax = tier * 20;
+            
+            const can = getRandomMultipleOfFive(canMax * 0.7, canMax);
+            const kuvvet = getRandomMultipleOfFive(kuvvetMax * 0.7, kuvvetMax);
+            const yenilenme = getRandomMultipleOfFive(yenilenmeMax * 0.7, yenilenmeMax);
+            
+            // Güç Belirleme (Tier'a göre güç sayısı ve özel tema)
+            const gucSayisi = Math.ceil(tier / 2) + 2; 
+            let secilenGucler = new Set();
+            
+            const temaHavuzu = customTheme === 'random' ? Object.keys(gucTemalari) : [customTheme];
+
+            for (let i = 0; i < gucSayisi; i++) {
+                const temaAdi = getRandomItem(temaHavuzu);
+                let guc = getRandomItem(gucTemalari[temaAdi]);
+                
+                let denemeSayaci = 0;
+                while(secilenGucler.has(guc) && denemeSayaci < 10) {
+                    const yeniTemaAdi = getRandomItem(temaHavuzu); 
+                    guc = getRandomItem(gucTemalari[yeniTemaAdi]);
+                    denemeSayaci++;
+                }
+                secilenGucler.add(guc);
+            }
+            
+            // HTML metnine çevirme
+            const gucListesiHTML = Array.from(secilenGucler).map(g => {
+                const parts = g.split(':');
+                const name = parts[0].trim();
+                const desc = parts.length > 1 ? parts[1].trim() : "Açıklaması yok.";
+                return `<li><strong>➤ ${name}</strong>: ${desc}</li>`;
+            }).join('');
+            
+            // Discord metnine çevirme 
+            const gucListesiDiscord = Array.from(secilenGucler).map(g => {
+                const parts = g.split(':');
+                const name = parts[0].trim().replace(/`/g, '\\`'); 
+                const desc = parts.length > 1 ? parts[1].trim().replace(/`/g, '\\`') : "Açıklaması yok.";
+                return `**➤ ${name}**\n* ${desc}`;
+            }).join('\n');
+
+
+            // Tier'a göre kart rengi sınıfı atama ve Özel Bilgiler
+            let cardClass = '';
+            let ekBilgi = "";
+            let ekBilgiDiscord = "";
+            
+            if (tier === 10) {
+                cardClass = 'card-tier-10';
+                ekBilgi = "<p style='color:#ff9900; font-weight:bold;'>**ÖZEL:** Mutlak Varlık. Fizik ve Metafizik Yasaların Üstündedir. Ölümsüzdür.</p>";
+                ekBilgiDiscord = "**ÖZEL:** Mutlak Varlık. Fizik ve Metafizik Yasaların Üstündedir. Ölümsüzdür.\n";
+            } else if (tier >= 7) {
+                cardClass = 'card-tier-8';
+                if (Math.random() < 0.3) {
+                    ekBilgi = "<p style='color:#cc00ff; font-weight:bold;'>**ÖZEL:** Varoluş Manipülasyonu. Belli bir alandaki maddeselliği değiştirebilir.</p>";
+                    ekBilgiDiscord = "**ÖZEL:** Varoluş Manipülasyonu. Belli bir alandaki maddeselliği değiştirebilir.\n";
+                }
+            } else if (tier >= 4) {
+                cardClass = 'card-tier-5';
+            } else if (tier >= 2) {
+                cardClass = 'card-tier-3';
+            } else {
+                cardClass = 'card-tier-1';
+            }
+
+            // Kopyalama Formatı: # EMOJİ **Ad**
+            const discordText = `
+# <:mystery:1358389140273496084> **${isim}**
+
+-# ➤ Can ${can} <:MC_Heart_Full:1373780419450900511>
+-# ➤ Kuvvet ${kuvvet} <:kuvvet:1400844968658075810>
+-# ➤ Yenilenme ${yenilenme}<:MC_Heart_Full:1373780419450900511>
+*Tier: ${tier}*
+---
+**Güçler Ve Bilgiler**
+${ekBilgiDiscord}
+${gucListesiDiscord}
+`;
+            
+            // Kopyalama metnini, olası hatalı karakterlerden arındırıp JavaScript'e uygun hale getiren son düzeltme.
+            const safeDiscordText = discordText.trim()
+                .replace(/`/g, '\\`') // Ters tırnakları kaçır
+                .replace(/\n/g, '\\n') // Yeni satırları kaçır
+                .replace(/"/g, '\\"'); // Çift tırnakları kaçır
+
+            // HTML Kartı Oluşturma
+            const characterCard = `
+                <div class="card ${cardClass}">
+                    <div class="header">
+                        <img src="https://cdn.discordapp.com/emojis/1358389140273496084.webp?size=48&quality=lossless" alt="mystery" width="30" height="30">
+                        <div class="name">${isim}</div>
+                        <div class="tier">Tier ${tier}</div>
+                    </div>
+                    
+                    ${ekBilgi}
+
+                    <div class="stats">
+                        <div class="stat-line">
+                            <span class="stat-label">Can ($\heart$)</span>
+                            <span>${can}</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">Kuvvet ($\approx$)</span>
+                            <span>${kuvvet}</span>
+                        </div>
+                        <div class="stat-line">
+                            <span class="stat-label">Yenilenme ($\heart$)</span>
+                            <span>${yenilenme}</span>
+                        </div>
+                    </div>
+
+                    <div class="powers-title">Güçler ve Bilgiler</div>
+                    <ul class="power-list">
+                        ${gucListesiHTML}
+                    </ul>
+                    <button class="copy-button" onclick="copyToClipboard(this, \`${safeDiscordText}\`)">Discord Kopyala</button>
+                </div>
+            `;
+            
+            outputDiv.insertAdjacentHTML('afterbegin', characterCard);
+        }
+
+        // Kopyalama Fonksiyonu
+        function copyToClipboard(button, textToCopy) {
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    const originalText = button.textContent;
+                    button.textContent = 'Kopyalandı!';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                    }, 1500);
+                })
+                .catch(err => {
+                    console.error('Kopyalama başarısız oldu: ', err);
+                    alert('Kopyalama başarısız oldu. Lütfen metni manuel olarak kopyalayın.');
+                });
+        }
+    </script>
+
+</body>
+</html>
